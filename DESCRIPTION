@@ -1,0 +1,21 @@
+Package: kffmethods
+Type: Package
+Title: Survey Methods and Analysis
+Version: 0.1.0
+Authors@R: c(
+    person(
+      "Audrey", "Kearney",
+      email = "audrey.akearney@gmail.com",
+      role = c("aut", "cre")
+    )
+  )
+Description: Helper functions for survey methods, MOSE calculations, and 
+      (forthcoming) statistical testing.
+License: KFF
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Imports:
+    dplyr,
+    rlang,
+    pewmethods
+RoxygenNote: 7.3.3
