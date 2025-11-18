@@ -19,3 +19,5 @@ Imports:
     rlang,
     pewmethods
 RoxygenNote: 7.3.3
+URL: https://github.com/aakearney4/kffmethods
+BugReports: https://github.com/aakearney4/kffmethods/issues
