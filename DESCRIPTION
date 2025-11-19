@@ -1,4 +1,4 @@
-Package: kffmethods
+Package: posr
 Type: Package
 Title: Survey Methods and Analysis
 Version: 0.1.0
@@ -9,8 +9,8 @@ Authors@R: c(
       role = c("aut", "cre")
     )
   )
-Description: Helper functions for survey methods, MOSE calculations, and 
-      (forthcoming) statistical testing.
+Description: Helper functions for survey methods and public opinion research (posr), 
+      MOSE calculations, and (forthcoming) statistical testing.
 License: KFF
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -19,5 +19,5 @@ Imports:
     rlang,
     pewmethods
 RoxygenNote: 7.3.3
-URL: https://github.com/aakearney4/kffmethods
-BugReports: https://github.com/aakearney4/kffmethods/issues
+URL: https://github.com/aakearney4/posr
+BugReports: https://github.com/aakearney4/posr/issues
