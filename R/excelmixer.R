@@ -1,6 +1,12 @@
+#' fix_guts is internal, borrowed from https://github.com/jjmoncus/wink/blob/main/R/write_banners.R
+#' used to produce table that has numbers saved sa numbers and text as text
+#'
+#' @importFrom purrr list_flatten
+#'
+
+
 library(openxlsx)
 library(dplyr)
-library(purrr)
 
 # Keep your fix guts function from before
 fix_guts <- function(data) {
