@@ -1,86 +1,188 @@
-#' fix_guts is internal, borrowed from https://github.com/jjmoncus/wink/blob/main/R/write_banners.R
-#' used to produce table that has numbers saved sa numbers and text as text
+#' fix_guts
+#' Internal helper function to process data frame so numbers remain
+#' as numbers and text as text when exporting. Borrowed and adapted from:
+#' <https://github.com/jjmoncus/wink/blob/main/R/write_banners.R>
 #'
-#' @importFrom purrr list_flatten
-#'
+#' @param data A data frame or tibble to process.
+#' @return A list of row vectors, with numeric values as numeric and text as character.
+#' @keywords internal
+#' @importFrom purrr map
+#' @importFrom dplyr select mutate row_number
+#' @importFrom tibble as_tibble
 
-
-library(openxlsx)
-library(dplyr)
-
-# Keep your fix guts function from before
+# ---- fix_guts: preserve numeric vs text safely ----
 fix_guts <- function(data) {
   data %>%
-    mutate(rownum = 1:nrow(data)) %>%
-    split(~rownum) %>%
+    as_tibble(.name_repair = "minimal") %>%
+    mutate(rownum = row_number()) %>%
+    split(.$rownum) %>%
     map(function(x) {
-      x <- x %>% select(-rownum)
-      rest <- x[2:length(x)]
-      condition <- suppressWarnings(as.numeric(rest[[1]]) %>% is.na())
-      if (!condition) {
-        rest <- rest %>% mutate(across(everything(), as.numeric))
+      x <- select(x, -rownum)
+
+      # Drop label column
+      vals <- x[, -1, drop = FALSE]
+
+      # Attempt numeric coercion
+      num_try <- suppressWarnings(map(vals, as.numeric))
+
+      # If first value converts, treat row as numeric
+      if (!is.na(num_try[[1]][1])) {
+        vals[] <- num_try
       }
-      rest
-    }) %>%
-    list_flatten()
+
+      unlist(vals, use.names = FALSE)
+    })
 }
 
-#Write a dataframe to excel that has mixed styles
-excelmixer <- function(df, file, sheet_name = "Sheet1") {
+#' demo_spans
+#' Internal helper function to find consecutive repeated values in a row.
+#' Used to merge demo cells in the Excel sheet.
+#'
+#' @param demo_row A character vector representing a row of demo labels.
+#' @return A tib ble with columns: label, start, end.
+#' @keywords internal
+#' @importFrom tibble tibble
+
+# ---- helper to find duplicate demo label spans for merging ----
+demo_spans <- function(demo_row) {
+  r <- rle(demo_row)
+  ends <- cumsum(r$lengths)
+  starts <- ends - r$lengths + 1
+
+  tibble(
+    label = r$values,
+    start = starts,
+    end = ends
+  )
+}
+
+#' excelmixer
+#'
+#' Export a data frame to Excel with mixed character and numeric values
+#'
+#' @param df Data frame to export.
+#' @param file Output Excel file path.
+#' @param sheet_name Name of the Excel sheet. Default is "Sheet1".
+#' @param merge_demos Logical, should demo cells in the first row be merged? Default TRUE.
+#' @return None; writes Excel file.
+#' @export
+#' @importFrom openxlsx createWorkbook addWorksheet writeData saveWorkbook setColWidths createStyle addStyle mergeCells
+#' @importFrom dplyr select
+#' @importFrom tibble rownames_to_column
+#' @importFrom purrr map
+
+
+# ---- Excel exporter ----
+excelmixer <- function(df, file, sheet_name = "Sheet1", merge_labels = TRUE) {
+
   wb <- createWorkbook()
   addWorksheet(wb, sheet_name)
 
-  # Create a column for row names if they exist
-  if (!is.null(rownames(df))) {
-    df <- cbind(Row = rownames(df), df)
+  # Move row names into data
+  df <- tibble::rownames_to_column(df, "Row")
+
+  # Demographic name and label rows
+  demo_var <- as.character(df[1, -1])
+  demo_val <- as.character(df[2, -1])
+  body <- df[-c(1, 2), ]
+
+  # ---- write demographic headers ----
+  writeData(
+    wb, sheet_name,
+    x = as.data.frame(t(c("", demo_var))),
+    startRow = 1, startCol = 1,
+    colNames = FALSE
+  )
+
+  writeData(
+    wb, sheet_name,
+    x = as.data.frame(t(c("", demo_val))),
+    startRow = 2, startCol = 1,
+    colNames = FALSE
+  )
+
+  # ---- merge demographic headers when they match (e.g. PARTY PARTY) default=TRUE ----
+  if (merge_labels) {
+    spans <- demo_spans(demo_var)
+    for (i in seq_len(nrow(spans))) {
+      if (!is.na(spans$label[i]) && spans$start[i] < spans$end[i]) {
+        mergeCells(
+          wb,
+          sheet = sheet_name,
+          cols = (spans$start[i] + 1):(spans$end[i] + 1),
+          rows = 1
+        )
+      }
+    }
   }
 
-  # Write headers
-  writeData(wb, sheet_name, x = colnames(df), startRow = 1, startCol = 1, colNames = FALSE)
+  # ---- header style ----
+  header_style <- createStyle(
+    halign = "center",
+    valign = "center"
+  )
+  addStyle(
+    wb, sheet_name,
+    style = header_style,
+    rows = 1:2,
+    cols = 1:ncol(df),
+    gridExpand = TRUE,
+    stack = TRUE
+  )
 
-  # Apply fix_guts to split rows and handle numeric/text
-  guts <- fix_guts(df)
+  # ---- body ----
+  guts <- fix_guts(body)
+  stopifnot(length(guts) == nrow(body))
 
-  # Write each row iteratively
-  for (i in 1:nrow(df)) {
-    # Write main data (starting from column 2)
+  for (i in seq_len(nrow(body))) {
+
+    excel_row <- i + 2
+
+    # Row label
     writeData(
-      wb,
-      sheet = sheet_name,
-      x = guts[[i]],
-      startRow = i + 1,  # row 1 is headers
-      startCol = 2,
-      colNames = FALSE
-    )
-
-    # Write first column separately (labels/text)
-    writeData(
-      wb,
-      sheet = sheet_name,
-      x = df[i, 1, drop = TRUE],
-      startRow = i + 1,
+      wb, sheet_name,
+      x = data.frame(body$Row[i]),
+      startRow = excel_row,
       startCol = 1,
       colNames = FALSE
     )
 
-    # Apply numeric formatting only to numeric cells
-    numeric_cells <- sapply(guts[[i]], is.numeric)
-    if(any(numeric_cells)) {
+    # Row values
+    row_values <- guts[[i]]
+
+    # Write values as-is
+    writeData(
+      wb, sheet_name,
+      x = as.data.frame(t(row_values)),
+      startRow = excel_row,
+      startCol = 2,
+      colNames = FALSE
+    )
+
+    # Apply numeric style (without forcing digits)
+    is_num <- vapply(row_values, is.numeric, logical(1))
+    if (any(is_num)) {
       addStyle(
-        wb,
-        sheet = sheet_name,
-        style = createStyle(numFmt = "0.00"),
-        rows = i + 1,
-        cols = which(numeric_cells) + 1,  # +1 because main data starts in col 2
-        gridExpand = TRUE,
+        wb, sheet_name,
+        style = createStyle(),
+        rows = excel_row,
+        cols = which(is_num) + 1,
         stack = TRUE
       )
     }
   }
 
-  # Save workbook
+  # ---- auto-adjust first column width ----
+  setColWidths(
+    wb,
+    sheet = sheet_name,
+    cols = 1,
+    widths = "auto"
+  )
+
   saveWorkbook(wb, file, overwrite = TRUE)
 }
+
 
 # # Example usage:
 # df <- data.frame(
