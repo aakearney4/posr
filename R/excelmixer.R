@@ -75,7 +75,7 @@ demo_spans <- function(demo_row) {
 # ---- Excel exporter ----
 excelmixer <- function(df, file, sheet_name = "Sheet1", merge_labels = TRUE) {
 
-  wb <- createWorkbook()
+  wb <- openxlsx::createWorkbook()
   addWorksheet(wb, sheet_name)
 
   # Move row names into data
@@ -180,7 +180,7 @@ excelmixer <- function(df, file, sheet_name = "Sheet1", merge_labels = TRUE) {
     widths = "auto"
   )
 
-  saveWorkbook(wb, file, overwrite = TRUE)
+  openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
 }
 
 
