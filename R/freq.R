@@ -1,0 +1,109 @@
+#' Frequency Table with Optional Weighting
+#'
+#' @description
+#' `freq()` produces a frequency table for a single variable, with optional
+#' survey weighting. Returns a data frame with percentages and unweighted counts,
+#' with a Total row at the bottom. Factor level ordering is preserved. NA values
+#' are either excluded (default) or shown as "(Missing)".
+#'
+#' The percentage column is labeled `weighted_pct` when a weight is supplied and
+#' `unweighted_pct` when not. Counts are always unweighted.
+#'
+#' @param data A data frame.
+#' @param var A character string giving the name of the variable to tabulate.
+#' @param weight Optional character string giving the name of the weight variable.
+#'   If `NULL` (default), unweighted counts are used.
+#' @param include_na Logical. If `TRUE`, NA values are included as a `"(Missing)"`
+#'   row. Default is `FALSE`.
+#' @param digits Integer. Number of decimal places for percentages. Default is `0`.
+#'
+#' @return A data frame with columns for the variable values, percentage
+#'   (`weighted_pct` or `unweighted_pct`), and `unweighted_n`. The final row
+#'   shows the total percentage and total unweighted N.
+#'
+#' @examples
+#' # Basic unweighted frequency
+#' freq(data, "party3")
+#'
+#' # Weighted frequency
+#' freq(data, "party3", weight = "WEIGHT_PID_ADJ")
+#'
+#' # Weighted frequency including NAs
+#' freq(data, "MAGA1", weight = "WEIGHT_PID_ADJ", include_na = TRUE)
+#'
+#' # Weighted frequency with decimal places
+#' freq(data, "party3", weight = "WEIGHT_PID_ADJ", digits = 1)
+#'
+#' # On a combo variable
+#' freq(data, "party3MAGA1_combo", weight = "WEIGHT_PID_ADJ")
+#'
+#' # On a total variable
+#' freq(data, "rxmany_Total", weight = "WEIGHT_PID_ADJ")
+#'
+#' @importFrom dplyr filter group_by summarise mutate select rename arrange bind_rows
+#' @importFrom tibble tibble
+#' @importFrom glue glue
+
+freq <- function(data, var, weight = NULL, include_na = FALSE, digits = 0) {
+  # Check variable exists
+  if (!var %in% names(data)) {
+    message(glue("{var} is not in dataset"))
+    return(NULL)
+  }
+  # Check weight exists if provided
+  if (!is.null(weight) && !weight %in% names(data)) {
+    message(glue("{weight} is not in dataset"))
+    return(NULL)
+  }
+
+  pct_label <- if (!is.null(weight)) "weighted_pct" else "unweighted_pct"
+
+  # Work with factor levels if available to preserve order
+  if (is.factor(data[[var]])) {
+    existing_levels <- levels(data[[var]])
+    if (include_na && anyNA(data[[var]])) {
+      existing_levels <- c(existing_levels, "(Missing)")
+    }
+  } else {
+    existing_levels <- NULL
+  }
+
+  df <- data %>%
+    mutate(!!var := ifelse(is.na(.data[[var]]), "(Missing)", as.character(.data[[var]]))) %>%
+    {if (!include_na) filter(., .data[[var]] != "(Missing)") else .} %>%
+    group_by(.data[[var]]) %>%
+    summarise(
+      weighted_n   = if (!is.null(weight)) sum(.data[[weight]], na.rm = TRUE) else n(),
+      unweighted_n = n()
+    ) %>%
+    mutate(pct = round(weighted_n / sum(weighted_n) * 100, digits)) %>%
+    select(-weighted_n) %>%
+    rename(!!pct_label := pct)
+
+  # Restore factor ordering
+  if (!is.null(existing_levels)) {
+    df <- df %>%
+      mutate(!!var := factor(.data[[var]], levels = existing_levels)) %>%
+      arrange(.data[[var]]) %>%
+      mutate(!!var := as.character(.data[[var]]))
+  }
+
+  total_pct <- sum(df[[pct_label]])
+  total_n   <- if (include_na) nrow(data) else sum(!is.na(data[[var]]))
+
+  df %>%
+    bind_rows(tibble(!!var := "Total", !!pct_label := total_pct, unweighted_n = total_n))
+}
+
+
+# Basic unweighted frequency
+# freq(data, "party3")
+#
+# # Weighted frequency
+# freq(data, "party3", weight = "WEIGHT_PID_ADJ")
+#
+# # Weighted frequency including NAs
+# freq(data, "MAGA1", weight = "WEIGHT_PID_ADJ", include_na = TRUE)
+#
+# # Weighted frequency with decimal places
+# freq(data, "party3", weight = "WEIGHT_PID_ADJ", digits = 1)
