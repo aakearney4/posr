@@ -20,9 +20,10 @@
 #'   inserted immediately after `var`.
 #'
 #' @examples
+#' \dontrun{
 #' data <- among_total(data, Q4_A, "(Costs have not increased)")
 #' # Creates Q4_A_Total with NAs labeled and placed after substantive responses
-#'
+#' }
 #' @importFrom forcats fct_explicit_na
 #' @importFrom rlang ensym as_string sym
 #' @importFrom dplyr relocate

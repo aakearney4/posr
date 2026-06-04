@@ -21,6 +21,7 @@
 #'   immediately after `var`.
 #'
 #' @examples
+#' \dontrun{
 #' # Collapse levels 1:3, keep original labels joined with "/"
 #' data <- netter(data, Q10_A, groups = list(1:3))
 #'
@@ -36,10 +37,11 @@
 #'   label    = "AI USE",
 #'   new_name = "Q11A_REC"
 #' )
-#'
+#' }
 #' @importFrom rlang ensym as_string sym
 #' @importFrom dplyr relocate
-#' @importFrom labelled var_label
+#' @importFrom labelled var_label var_label<-
+
 netter <- function(data, var, groups, label = NULL, new_name = NULL) {
   var_sym <- ensym(var)
   var_str <- as_string(var_sym)

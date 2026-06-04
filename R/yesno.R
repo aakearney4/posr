@@ -11,8 +11,9 @@
 #'   are found, returns `NULL` invisibly with a message.
 #'
 #' @examples
+#' \dontrun{
 #' scan_yesno(data)
-#'
+#' }
 #' @importFrom tibble tibble
 #' @importFrom labelled var_label
 scan_yesno <- function(data) {
@@ -50,12 +51,14 @@ scan_yesno <- function(data) {
 #' @return The original data frame with relabelled factor levels.
 #'
 #' @examples
+#' \dontrun{
 #' data <- relabel_yesno(data,
 #'   MAHA1 = c("MAHA supporter", "Not MAHA supporter"),
 #'   MAGA1 = c("MAGA Rep/leaner", "Non-MAGA Rep/leaner"),
 #'   RVOTE = c("Reg. voter", "Not reg. voter"),
 #'   CHILD = c("Parent", "Not parent")
 #' )
+#'}
 #'
 #' @importFrom labelled var_label
 relabel_yesno <- function(data, ...) {

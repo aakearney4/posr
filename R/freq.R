@@ -22,6 +22,7 @@
 #'   shows the total percentage and total unweighted N.
 #'
 #' @examples
+#' \dontrun{
 #' # Basic unweighted frequency
 #' freq(data, "party3")
 #'
@@ -39,25 +40,25 @@
 #'
 #' # On a total variable
 #' freq(data, "rxmany_Total", weight = "WEIGHT_PID_ADJ")
-#'
-#' @importFrom dplyr filter group_by summarise mutate select rename arrange bind_rows
+#'}
+#' @importFrom dplyr filter group_by summarise mutate rename arrange bind_rows
 #' @importFrom tibble tibble
-#' @importFrom glue glue
+#' @importFrom magrittr %>%
+#' @importFrom rlang :=
 
 freq <- function(data, var, weight = NULL, include_na = FALSE, digits = 0) {
   # Check variable exists
   if (!var %in% names(data)) {
-    message(glue("{var} is not in dataset"))
+    message(paste0(var, " is not in dataset"))
     return(NULL)
   }
   # Check weight exists if provided
   if (!is.null(weight) && !weight %in% names(data)) {
-    message(glue("{weight} is not in dataset"))
+    message(paste0(weight, " is not in dataset"))
     return(NULL)
   }
 
   pct_label <- if (!is.null(weight)) "weighted_pct" else "unweighted_pct"
-
   # Work with factor levels if available to preserve order
   if (is.factor(data[[var]])) {
     existing_levels <- levels(data[[var]])
@@ -68,42 +69,32 @@ freq <- function(data, var, weight = NULL, include_na = FALSE, digits = 0) {
     existing_levels <- NULL
   }
 
+  # Resolve weight column before pipe chain to avoid NULL subsetting issue
+  data[["._weight_"]] <- if (!is.null(weight)) data[[weight]] else rep(1, nrow(data))
   df <- data %>%
-    mutate(!!var := ifelse(is.na(.data[[var]]), "(Missing)", as.character(.data[[var]]))) %>%
-    {if (!include_na) filter(., .data[[var]] != "(Missing)") else .} %>%
-    group_by(.data[[var]]) %>%
-    summarise(
-      weighted_n   = if (!is.null(weight)) sum(.data[[weight]], na.rm = TRUE) else n(),
-      unweighted_n = n()
+    dplyr::mutate(!!var := ifelse(is.na(.data[[var]]), "(Missing)", as.character(.data[[var]]))) %>%
+    {if (!include_na) dplyr::filter(., .data[[var]] != "(Missing)") else .} %>%
+    dplyr::group_by(.data[[var]]) %>%
+    dplyr::summarise(
+      weighted_n   = sum(.data[["._weight_"]], na.rm = TRUE),
+      unweighted_n = dplyr::n()
     ) %>%
-    mutate(pct = round(weighted_n / sum(weighted_n) * 100, digits)) %>%
-    select(-weighted_n) %>%
-    rename(!!pct_label := pct)
-
+    dplyr::mutate(
+      pct        = round(weighted_n / sum(weighted_n) * 100, digits),
+      weighted_n = NULL
+    ) %>%
+    dplyr::rename(!!pct_label := pct)
   # Restore factor ordering
   if (!is.null(existing_levels)) {
     df <- df %>%
-      mutate(!!var := factor(.data[[var]], levels = existing_levels)) %>%
-      arrange(.data[[var]]) %>%
-      mutate(!!var := as.character(.data[[var]]))
+      dplyr::mutate(!!var := factor(.data[[var]], levels = existing_levels)) %>%
+      dplyr::arrange(.data[[var]]) %>%
+      dplyr::mutate(!!var := as.character(.data[[var]]))
   }
-
   total_pct <- sum(df[[pct_label]])
   total_n   <- if (include_na) nrow(data) else sum(!is.na(data[[var]]))
-
   df %>%
-    bind_rows(tibble(!!var := "Total", !!pct_label := total_pct, unweighted_n = total_n))
+    dplyr::bind_rows(tibble::tibble(!!var := "Total", !!pct_label := total_pct, unweighted_n = total_n))
 }
 
 
-# Basic unweighted frequency
-# freq(data, "party3")
-#
-# # Weighted frequency
-# freq(data, "party3", weight = "WEIGHT_PID_ADJ")
-#
-# # Weighted frequency including NAs
-# freq(data, "MAGA1", weight = "WEIGHT_PID_ADJ", include_na = TRUE)
-#
-# # Weighted frequency with decimal places
-# freq(data, "party3", weight = "WEIGHT_PID_ADJ", digits = 1)

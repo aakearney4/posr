@@ -18,6 +18,7 @@
 #' @importFrom dplyr filter mutate select bind_rows pull
 #' @importFrom rlang .data syms
 #' @importFrom pewmethods calculate_deff
+#' @importFrom stats median
 
 mose_table <- function(data, weight_col, vars, min_n = 75,
                        transpose = TRUE, digits = 2, moedigits = 0) {

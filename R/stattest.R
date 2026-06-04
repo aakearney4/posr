@@ -199,7 +199,7 @@ stattest <- function(
       "Sum of Sq Weights (Group 1)","Design Effect (Group 1)","--- Group 2 ---",
       "P2", "Unweighted N (Group 2)", "Sum of Weights (Group 2)", "Sum of Sq Weights (Group 2)",
       "Design Effect (Group 2)", "--- Test Results ---", "Combined raw tolerance",
-      "Tolerance at 0.05", "Difference P1 – P2","Difference minus Tolerance",
+      "Tolerance at 0.05", "Difference P1 - P2","Difference minus Tolerance",
       "Significant at 0.05", "Test Type"
     ),
 
