@@ -9,7 +9,7 @@
 #'
 #' Substantive levels appear first, followed by the explicit NA label, followed by
 #' any DK/Refused/Web Blank levels. DK detection is case-insensitive.
-#'
+#' @export
 #' @param data A data frame.
 #' @param var The variable to total. Must be a factor.
 #' @param na_level A character string giving the label to apply to NA values
@@ -20,9 +20,10 @@
 #'   inserted immediately after `var`.
 #'
 #' @examples
+#' \dontrun{
 #' data <- among_total(data, Q4_A, "(Costs have not increased)")
 #' # Creates Q4_A_Total with NAs labeled and placed after substantive responses
-#'
+#' }
 #' @importFrom forcats fct_explicit_na
 #' @importFrom rlang ensym as_string sym
 #' @importFrom dplyr relocate

@@ -39,7 +39,7 @@ fix_guts <- function(data) {
 #' Used to merge demo cells in the Excel sheet.
 #'
 #' @param demo_row A character vector representing a row of demo labels.
-#' @return A tib ble with columns: label, start, end.
+#' @return A tibble with columns: label, start, end.
 #' @keywords internal
 #' @importFrom tibble tibble
 
@@ -63,7 +63,7 @@ demo_spans <- function(demo_row) {
 #' @param df Data frame to export.
 #' @param file Output Excel file path.
 #' @param sheet_name Name of the Excel sheet. Default is "Sheet1".
-#' @param merge_demos Logical, should demo cells in the first row be merged? Default TRUE.
+#' @param merge_labels Logical, should demo cells in the first row be merged? Default TRUE.
 #' @return None; writes Excel file.
 #' @export
 #' @importFrom openxlsx createWorkbook addWorksheet writeData saveWorkbook setColWidths createStyle addStyle mergeCells

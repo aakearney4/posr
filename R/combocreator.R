@@ -4,7 +4,7 @@
 #' `combocreator()` combines a parent factor variable and a child factor variable
 #' that was only asked of a subset of respondents into a single combo variable.
 #' For respondents who were asked the child question, the combo variable takes the
-#' form `"[parent label] – [child label]"`. For respondents who were not asked the
+#' form `"[parent label] - [child label]"`. For respondents who were not asked the
 #' child question, the combo variable retains the parent label. The new variable is
 #' placed immediately after the child variable in the dataset.
 #'
@@ -14,7 +14,7 @@
 #'
 #' Level ordering follows the original factor ordering of `var1` and `var2` rather
 #' than alphabetical sorting.
-#'
+#' @export
 #' @param data A data frame.
 #' @param var1 The parent factor variable.
 #' @param var2 The child factor variable (asked of a subset of `var1` levels).
@@ -25,16 +25,18 @@
 #'   `{var1}{var2}_combo` inserted immediately after `var2`.
 #'
 #' @examples
+#' \dontrun{
 #' # Auto-detect which groups were asked the child question
 #' data <- combocreator(data, party3, MAGA1)
 #'
 #' # Manually specify which groups were asked
 #' data <- combocreator(data, party3, maga1,
 #'   child_asked_values = c("Republican", "Republican-leaning Independent"))
-#'
+#' }
 #' @importFrom rlang ensym as_string sym
 #' @importFrom dplyr filter pull relocate case_when
-#' @importFrom labelled var_label
+#' @importFrom labelled var_label var_label<-
+
 combocreator <- function(
     data,
     var1,
@@ -117,7 +119,7 @@ combocreator <- function(
 
   combo_var <- case_when(
     data[[var1_str]] %in% child_asked_values & !is.na(data[[var2_str]]) ~
-      paste(parent_labels_chr, "–", child_labels_chr),
+      paste(parent_labels_chr, "-", child_labels_chr),
     !data[[var1_str]] %in% child_asked_values & !is.na(data[[var1_str]]) ~
       parent_labels_chr,
     TRUE ~ NA_character_
@@ -126,7 +128,7 @@ combocreator <- function(
   # Preserve original factor ordering from var1 and var2
   parent_combos <- valid_parent_levels[valid_parent_levels %in% child_asked_values]
   ordered_levels <- unlist(lapply(parent_combos, function(p) {
-    paste(p, "–", valid_child_levels)
+    paste(p, "-", valid_child_levels)
   }))
   not_asked_levels <- valid_parent_levels[!valid_parent_levels %in% child_asked_values]
   combo_levels <- c(
